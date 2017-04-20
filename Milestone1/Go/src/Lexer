@@ -1,0 +1,205 @@
+import java.lang.System;
+import java.io.*;
+import java.util.Stack;
+import java.util.EmptyStackException;
+
+class Lexer {
+
+	Yylex tokenizer;
+	public  Lexer(String fileName) 
+	{
+	  try
+	  {
+	  tokenizer=new Yylex(new BufferedReader(new FileReader(fileName)));
+	  }
+	  catch(Exception e)
+	  {
+	  
+	  }	 
+	}
+	public Token nextToken()
+	{
+		Token next=null;
+		try
+		{
+		 next=  tokenizer.getToken();
+		}
+		catch(Exception e)
+		{
+		}
+		return next;
+	}
+	}
+
+
+%%
+
+
+%function getToken
+%type Token
+%char
+%line
+%yyeof
+
+%{
+int open_curly, close_curly, open_paran, close_paran = 0;
+Stack<String> MISSING_CURLY = new Stack();
+Stack<String> MISSING_PARAN = new Stack();
+Stack<String> MISSING_SQUARE = new Stack();
+%}
+
+
+%init{
+
+//Add code to be executed on initialization of the lexer
+
+%init}
+
+
+%eofval{
+private void error_exist(){
+	if (!MISSING_CURLY.empty()) {
+			return new Token(Token.ERROR, "You have a missing bracket in line " + (yyline+1));
+		}
+	if (!MISSING_PARAN.empty()) {
+			return new Token(Token.ERROR, "You have a missing bracket in line " + (yyline+1));
+		}
+}
+private void end_file(){
+	
+		if (!MISSING_CURLY.empty()) {
+			return new Token(Token.EOF, "There is some { that is not closed");
+		}
+		if (!MISSING_PARAN.empty()) {
+			return new Token(Token.EOF, "There is some ( that is not closed");
+		}else{
+			return new Token(Token.EOF, "Done");
+		}
+}
+%eofval}
+
+
+PACKAGE=(package)
+IMPORT=(import)
+IF=(if)
+ELSE=(else)
+SWITCH=(switch)
+CASE=(case)
+RETURN=(return)
+TYPE=(type)
+FUNC=(func)
+CONST=(const)
+VAR=(var)
+STRUCT=(struct)
+
+STRING_LIT=(\"[\\\<=>!A-Za-z0-9%\\,.:\"" ""	"]*\"|\`" "*[\\\<=>!A-Za-z0-9\\%,.:\"" ""	"]*" "*\`)
+IDENTIFIER=([A-Za-z][A-Za-z0-9]*)
+INT_LIT=[0-9]+
+
+NEWLINE=[\n]
+COMMENT=("//"+" "*(.)*)
+SPACE=(" "|\t|\b)
+	
+OPEN_CURLY="{"
+CLOSE_CURLY="}"
+OPEN_PARAN="("
+CLOSE_PARAN=")"
+OPEN_SQUARE="["
+CLOSE_SQUARE="]"
+DOT="."
+COMMA=","
+COLON=":"
+COLON_EQUAL=":="
+EQUAL="="
+SLASH="/"
+PERCENT="%"
+REL_OP=("=="|"<"|">"|"!="|"<="|">=")
+AND_OP="&&"
+SEMI_COLON=";"
+PLUS="+"
+MINUS="-"
+ASTRISK="*"
+SLASH="/"
+INCREMENT="++"
+DECREMENT="--"
+
+%% 
+<YYINITIAL> {PACKAGE} { return (new Token(Token.PACKAGE,yytext()));}
+<YYINITIAL> {IMPORT} { return (new Token(Token.IMPORT,yytext()));}
+<YYINITIAL> {IF} { return (new Token(Token.IF,yytext()));}
+<YYINITIAL> {ELSE} { return (new Token(Token.ELSE,yytext()));}
+<YYINITIAL> {SWITCH} { return (new Token(Token.SWITCH,yytext()));}
+<YYINITIAL> {CASE} { return (new Token(Token.CASE,yytext()));}
+<YYINITIAL> {RETURN} { return (new Token(Token.RETURN,yytext()));}
+<YYINITIAL> {TYPE} { return (new Token(Token.TYPE,yytext()));}
+<YYINITIAL> {FUNC} { return (new Token(Token.FUNC,yytext()));}
+<YYINITIAL> {CONST} { return (new Token(Token.CONST,yytext()));}
+<YYINITIAL> {VAR} { return (new Token(Token.VAR,yytext()));}
+<YYINITIAL> {STRUCT} { return (new Token(Token.STRUCT,yytext()));}
+
+<YYINITIAL> {STRING_LIT} { return (new Token(Token.STRING_LIT,yytext()));}
+<YYINITIAL> {IDENTIFIER} { return (new Token(Token.IDENTIFIER,yytext()));}
+<YYINITIAL> {INT_LIT} { return (new Token(Token.INT_LIT,yytext()));}
+
+<YYINITIAL> {NEWLINE} {}
+<YYINITIAL> {COMMENT} {}
+<YYINITIAL> {SPACE} {}
+
+<YYINITIAL> {OPEN_CURLY} { 
+	MISSING_CURLY.push("{");
+	return (new Token(Token.OPEN_CURLY,yytext()));
+	
+	}
+<YYINITIAL> {CLOSE_CURLY} { 
+	try {	
+		MISSING_CURLY.pop();
+	} catch (EmptyStackException e){
+		return (new Token(Token.ERROR,"} has no matching { in line" + (yyline+1)));
+	}
+	return (new Token(Token.CLOSE_CURLY,yytext()));
+	}
+<YYINITIAL> {OPEN_PARAN} {
+	MISSING_PARAN.push("(");
+	return (new Token(Token.OPEN_PARAN,yytext()));
+	}
+<YYINITIAL> {CLOSE_PARAN} { 
+	try {	
+		MISSING_PARAN.pop();
+	} catch (EmptyStackException e){
+		return (new Token(Token.ERROR,") has no matching ( in line" + (yyline+1)));
+	}
+	return (new Token(Token.CLOSE_PARAN,yytext()));
+	}
+<YYINITIAL> {OPEN_SQUARE} {
+	MISSING_SQUARE.push("(");
+	return (new Token(Token.OPEN_SQUARE,yytext()));
+	}
+<YYINITIAL> {CLOSE_SQUARE} { 
+	try {	
+		MISSING_SQUARE.pop();
+	} catch (EmptyStackException e){
+		return (new Token(Token.ERROR,"] has no matching [ in line" + (yyline+1)));
+	}
+	return (new Token(Token.CLOSE_SQUARE,yytext()));
+	}
+<YYINITIAL> {DOT} { return (new Token(Token.DOT,yytext()));}
+<YYINITIAL> {COMMA} { return (new Token(Token.COMMA,yytext()));}
+<YYINITIAL> {COLON} { return (new Token(Token.COLON,yytext()));}
+<YYINITIAL> {COLON_EQUAL} { return (new Token(Token.COLON_EQUAL,yytext()));}
+<YYINITIAL> {EQUAL} { return (new Token(Token.EQUAL,yytext()));}
+<YYINITIAL> {SLASH} { return (new Token(Token.SLASH,yytext()));}
+<YYINITIAL> {PERCENT} { return (new Token(Token.PERCENT,yytext()));}
+<YYINITIAL> {REL_OP} { return (new Token(Token.REL_OP,yytext()));}
+<YYINITIAL> {AND_OP} { return (new Token(Token.AND_OP,yytext()));}
+<YYINITIAL> {SEMI_COLON} { return (new Token(Token.SEMI_COLON,yytext()));}
+<YYINITIAL> {PLUS} { return (new Token(Token.PLUS,yytext()));}
+<YYINITIAL> {MINUS} { return (new Token(Token.MINUS,yytext()));}
+<YYINITIAL> {ASTRISK} { return (new Token(Token.ASTRISK,yytext()));}
+<YYINITIAL> {SLASH} { return (new Token(Token.SLASH,yytext()));}
+<YYINITIAL> {INCREMENT} { return (new Token(Token.INCREMENT,yytext()));}
+<YYINITIAL> {DECREMENT} { return (new Token(Token.DECREMENT,yytext()));}
+
+
+. {
+		return new Token(Token.ERROR, "Invalid input: " + yytext()+ " in line" + (yyline+1));
+}
