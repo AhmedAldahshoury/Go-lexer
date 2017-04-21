@@ -43,6 +43,7 @@ class Lexer {
 
 %{
 int open_curly, close_curly, open_paran, close_paran = 0;
+boolean curly,paran,square;
 Stack<String> MISSING_CURLY = new Stack();
 Stack<String> MISSING_PARAN = new Stack();
 Stack<String> MISSING_SQUARE = new Stack();
@@ -57,25 +58,32 @@ Stack<String> MISSING_SQUARE = new Stack();
 
 
 %eofval{
-private void error_exist(){
-	if (!MISSING_CURLY.empty()) {
-			return new Token(Token.ERROR, "You have a missing bracket in line " + (yyline+1));
-		}
-	if (!MISSING_PARAN.empty()) {
-			return new Token(Token.ERROR, "You have a missing bracket in line " + (yyline+1));
-		}
-}
-private void end_file(){
-	
 		if (!MISSING_CURLY.empty()) {
-			return new Token(Token.EOF, "There is some { that is not closed");
+			MISSING_CURLY.pop();
+			curly = true;
+			return new Token(Token.ERROR, "You have a missing bracket in line " + (yyline+1));
 		}
 		if (!MISSING_PARAN.empty()) {
+			MISSING_PARAN.pop();
+			paran = true;
+			return new Token(Token.ERROR, "You have a missing bracket in line " + (yyline+1));
+		}
+		if (!MISSING_SQUARE.empty()) {
+			MISSING_SQUARE.pop();
+			square = true;
+			return new Token(Token.ERROR, "You have a missing bracket in line " + (yyline+1));
+		}
+		if (curly) {
+			return new Token(Token.EOF, "There is some { that is not closed");
+		}
+		if (paran) {
 			return new Token(Token.EOF, "There is some ( that is not closed");
+		}
+		if (square) {
+			return new Token(Token.EOF, "There is some [ that is not closed");
 		}else{
 			return new Token(Token.EOF, "Done");
 		}
-}
 %eofval}
 
 
@@ -91,30 +99,37 @@ FUNC=(func)
 CONST=(const)
 VAR=(var)
 STRUCT=(struct)
+BREAK=(break)
+DEFAULT=(default)
+FOR=(for)
 
 STRING_LIT=(\"[\\\<=>!A-Za-z0-9%\\,.:\"" ""	"]*\"|\`" "*[\\\<=>!A-Za-z0-9\\%,.:\"" ""	"]*" "*\`)
-IDENTIFIER=([A-Za-z][A-Za-z0-9]*)
+IDENTIFIER=([A-Za-z][A-Za-z0-9_]*)
 INT_LIT=[0-9]+
 
 NEWLINE=[\n]
 COMMENT=("//"+" "*(.)*)
 SPACE=(" "|\t|\b)
-	
+
+REL_OP=("=="|"<"|">"|"!="|"<="|">=")
+AND_OP="&&"
+OR_OP="||"
+
 OPEN_CURLY="{"
 CLOSE_CURLY="}"
 OPEN_PARAN="("
 CLOSE_PARAN=")"
 OPEN_SQUARE="["
 CLOSE_SQUARE="]"
+
 DOT="."
+CDOTS="..."
 COMMA=","
 COLON=":"
 COLON_EQUAL=":="
 EQUAL="="
 SLASH="/"
 PERCENT="%"
-REL_OP=("=="|"<"|">"|"!="|"<="|">=")
-AND_OP="&&"
 SEMI_COLON=";"
 PLUS="+"
 MINUS="-"
@@ -122,6 +137,13 @@ ASTRISK="*"
 SLASH="/"
 INCREMENT="++"
 DECREMENT="--"
+SHIFT_LEFT="<<"
+SHIFT_RIGHT=">>"
+BAR="|"
+EXCLAMATION="!"
+LESS_DASH="<-"
+AMBERSAND="&"
+
 
 %% 
 <YYINITIAL> {PACKAGE} { return (new Token(Token.PACKAGE,yytext()));}
@@ -136,6 +158,9 @@ DECREMENT="--"
 <YYINITIAL> {CONST} { return (new Token(Token.CONST,yytext()));}
 <YYINITIAL> {VAR} { return (new Token(Token.VAR,yytext()));}
 <YYINITIAL> {STRUCT} { return (new Token(Token.STRUCT,yytext()));}
+<YYINITIAL> {BREAK} { return (new Token(Token.BREAK,yytext()));}
+<YYINITIAL> {DEFAULT} { return (new Token(Token.DEFAULT,yytext()));}
+<YYINITIAL> {FOR} { return (new Token(Token.FOR,yytext()));}
 
 <YYINITIAL> {STRING_LIT} { return (new Token(Token.STRING_LIT,yytext()));}
 <YYINITIAL> {IDENTIFIER} { return (new Token(Token.IDENTIFIER,yytext()));}
@@ -145,6 +170,9 @@ DECREMENT="--"
 <YYINITIAL> {COMMENT} {}
 <YYINITIAL> {SPACE} {}
 
+<YYINITIAL> {REL_OP} { return (new Token(Token.REL_OP,yytext()));}
+<YYINITIAL> {AND_OP} { return (new Token(Token.AND_OP,yytext()));}
+<YYINITIAL> {OR_OP} { return (new Token(Token.OR_OP,yytext()));}
 <YYINITIAL> {OPEN_CURLY} { 
 	MISSING_CURLY.push("{");
 	return (new Token(Token.OPEN_CURLY,yytext()));
@@ -182,15 +210,16 @@ DECREMENT="--"
 	}
 	return (new Token(Token.CLOSE_SQUARE,yytext()));
 	}
+	
+	
 <YYINITIAL> {DOT} { return (new Token(Token.DOT,yytext()));}
+<YYINITIAL> {CDOTS} { return (new Token(Token.CDOTS,yytext()));}
 <YYINITIAL> {COMMA} { return (new Token(Token.COMMA,yytext()));}
 <YYINITIAL> {COLON} { return (new Token(Token.COLON,yytext()));}
 <YYINITIAL> {COLON_EQUAL} { return (new Token(Token.COLON_EQUAL,yytext()));}
 <YYINITIAL> {EQUAL} { return (new Token(Token.EQUAL,yytext()));}
 <YYINITIAL> {SLASH} { return (new Token(Token.SLASH,yytext()));}
 <YYINITIAL> {PERCENT} { return (new Token(Token.PERCENT,yytext()));}
-<YYINITIAL> {REL_OP} { return (new Token(Token.REL_OP,yytext()));}
-<YYINITIAL> {AND_OP} { return (new Token(Token.AND_OP,yytext()));}
 <YYINITIAL> {SEMI_COLON} { return (new Token(Token.SEMI_COLON,yytext()));}
 <YYINITIAL> {PLUS} { return (new Token(Token.PLUS,yytext()));}
 <YYINITIAL> {MINUS} { return (new Token(Token.MINUS,yytext()));}
@@ -198,6 +227,12 @@ DECREMENT="--"
 <YYINITIAL> {SLASH} { return (new Token(Token.SLASH,yytext()));}
 <YYINITIAL> {INCREMENT} { return (new Token(Token.INCREMENT,yytext()));}
 <YYINITIAL> {DECREMENT} { return (new Token(Token.DECREMENT,yytext()));}
+<YYINITIAL> {SHIFT_LEFT} { return (new Token(Token.SHIFT_LEFT,yytext()));}
+<YYINITIAL> {SHIFT_RIGHT} { return (new Token(Token.SHIFT_RIGHT,yytext()));}
+<YYINITIAL> {BAR} { return (new Token(Token.BAR,yytext()));}
+<YYINITIAL> {EXCLAMATION} { return (new Token(Token.EXCLAMATION,yytext()));}
+<YYINITIAL> {LESS_DASH} { return (new Token(Token.LESS_DASH,yytext()));}
+<YYINITIAL> {AMBERSAND} { return (new Token(Token.AMBERSAND,yytext()));}
 
 
 . {

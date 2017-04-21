@@ -23,4 +23,5 @@ OPEN_PARAN : (
 INT_LIT : 7
 CLOSE_PARAN : )
 CLOSE_CURLY : }
+ERROR: You have a missing bracket in line 9
 EOF: There is some ( that is not closed
